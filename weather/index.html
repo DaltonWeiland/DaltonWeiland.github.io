@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Forecast</title>
+</head>
+<body>
+    <h1>Weather Forecast</h1>
+    <form id="locationForm">
+        <label for="latitude">Latitude:</label>
+        <input type="text" id="latitude" name="latitude" required><br><br>
+        <label for="longitude">Longitude:</label>
+        <input type="text" id="longitude" name="longitude" required><br><br>
+        <button type="submit">Get Weather Forecast</button>
+    </form>
+    <br>
+    <div id="forecast"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('locationForm');
+
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                const latitude = document.getElementById('latitude').value.trim();
+                const longitude = document.getElementById('longitude').value.trim();
+
+                fetchWeatherForecast(latitude, longitude);
+            });
+
+            function fetchWeatherForecast(latitude, longitude) {
+                const url = `https://api.weather.gov/points/${latitude},${longitude}`;
+                
+                fetch(url)
+                // First API call
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Extracting the forecast URL
+                        const forecastUrl = data.properties.forecast;
+                        console.log('Forecast URL:', forecastUrl);
+
+                        // Second API call using the forecast URL
+                        return fetch(forecastUrl);
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(forecastData => {
+                        // Call the displayForecastFunction with the JSON data
+                        displayForecast(forecastData);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                    });
+
+            }
+
+            function displayForecast(data) {
+                const forecastDiv = document.getElementById('forecast');
+                forecastDiv.innerHTML = ''; // Clear previous forecast data
+                
+                if (data && data.properties && data.properties.periods) {
+                    data.properties.periods.forEach(period => {
+                        const forecastItem = document.createElement('div');
+                        forecastItem.classList.add('forecast-item');
+                        forecastItem.innerHTML = `
+                            <h3>${period.name}</h3>
+                            <p><strong>Time:</strong> ${period.startTime}</p>
+                            <p><strong>Temperature:</strong> ${period.temperature} ${period.temperatureUnit}</p>
+                            <p><strong>Wind:</strong> ${period.windSpeed}, ${period.windDirection}</p>
+                            <p><strong>Forecast:</strong> ${period.shortForecast}</p>
+                            <p><strong>Detailed Forecast:</strong> ${period.detailedForecast}</p>
+                            <hr>
+                        `;
+                        forecastDiv.appendChild(forecastItem);
+                    });
+                } else {
+                    forecastDiv.textContent = 'No forecast data available.';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
